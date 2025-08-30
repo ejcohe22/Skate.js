@@ -10,8 +10,8 @@ export interface Controller {
   push: boolean;
 
   // Extra/Modifiers
-  Left: boolean;
-  Right: boolean;
-  Up: boolean;
-  Down: boolean;
+  trickLeft: boolean;
+  trickRight: boolean;
+  trickUp: boolean;
+  trickDown: boolean;
 }
