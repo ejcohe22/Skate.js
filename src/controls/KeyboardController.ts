@@ -10,6 +10,7 @@ export class KeyboardController implements Controller {
   // On-board / push
   caveman = false;
   push = false;
+  pushPressed = false;
 
   // Tricks / camera
   trickLeft = false;
@@ -21,6 +22,9 @@ export class KeyboardController implements Controller {
   private movementMap: Record<string, string>;
   private specialMap: Record<string, string>;
   private trickMap: Record<string, string>;
+
+  // Internal bookkeeping
+  private pressedThisFrame: Set<string> = new Set();
 
   constructor(useWasd = true) {
     this.movementMap = useWasd
@@ -46,12 +50,22 @@ export class KeyboardController implements Controller {
 
     // Special
     if (e.key === this.specialMap.caveman) this.caveman = down;
-    if (e.key === this.specialMap.push) this.push = down;
+    if (e.key === this.specialMap.push) {
+      if (down && !this.push) this.pressedThisFrame.add("push");
+      this.push = down;
+    }
 
     // Tricks / camera
     if (e.key === this.trickMap.left) this.trickLeft = down;
     if (e.key === this.trickMap.right) this.trickRight = down;
     if (e.key === this.trickMap.up) this.trickUp = down;
     if (e.key === this.trickMap.down) this.trickDown = down;
+  }
+
+  // Call this once per game tick to refresh one-frame flags
+  public update() {
+    this.pushPressed = this.pressedThisFrame.has("push");
+
+    this.pressedThisFrame.clear();
   }
 }
