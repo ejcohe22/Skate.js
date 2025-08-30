@@ -14,6 +14,12 @@ export class Skater {
   pushStack = 0; // tracks consecutive pushes (max 3)
   maxPushStack = 3;
 
+  private jumpCharge = 0; // seconds or arbitrary units
+  private maxJumpCharge = 3.0; // max charge
+
+  groundContacts = 0; // number of current contacts with ground
+  isGrounded = false;
+
   constructor(controller: KeyboardController, world: RAPIER.World) {
     this.controller = controller;
 
@@ -39,7 +45,9 @@ export class Skater {
       .enabledRotations(false, true, false); // Only Y rotation
     this.body = world.createRigidBody(bodyDesc);
 
-    const collider = RAPIER.ColliderDesc.cuboid(0.5, 1, 0.25).setTranslation(0, 1, 0);
+    const collider = RAPIER.ColliderDesc.cuboid(0.5, 1, 0.25)
+      .setTranslation(0, 1, 0)
+      .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
     world.createCollider(collider, this.body);
   }
 
@@ -63,7 +71,7 @@ export class Skater {
   private applyOffBoardMovement(delta: number) {
     if (this.onBoard) return;
 
-    const moveSpeed = 5;
+    const moveSpeed = 3;
 
     // WASD movement relative to facing
     const input = new THREE.Vector3(
@@ -77,13 +85,40 @@ export class Skater {
 
       // Rotate input to world space
       input.applyQuaternion(this.getBodyQuaternion());
-
-      const impulse = new RAPIER.Vector3(input.x, input.y, input.z);
-      this.body.setLinvel(impulse, true); // directly set velocity instead of impulse
+      input.multiplyScalar(moveSpeed);
     } else {
       // natural friction
-      const vel = this.body.linvel();
-      this.body.setLinvel(new RAPIER.Vector3(vel.x * 0.9, vel.y, vel.z * 0.9), true);
+      input.set(0, 0, 0);
+    }
+
+    const vel = this.body.linvel();
+    const velDiff = new RAPIER.Vector3(
+      input.x - vel.x,
+      0, // preserve Y for jumps
+      input.z - vel.z,
+    );
+
+    const mass = this.body.mass();
+    const impulse = new RAPIER.Vector3(velDiff.x * mass, velDiff.y * mass, velDiff.z * mass);
+    this.body.applyImpulse(impulse, true);
+
+    // --- Jump / charge logic ---
+    if (this.isGrounded) {
+      if (this.controller.push) {
+        // charge jump
+        this.jumpCharge += delta;
+        if (this.jumpCharge > this.maxJumpCharge) this.jumpCharge = this.maxJumpCharge;
+        // TODO: show visual indicator for jumpCharge
+      } else if (this.jumpCharge > 0) {
+        // release jump
+        const impulse = new RAPIER.Vector3(0, this.jumpCharge * 10, 0);
+
+        // Apply impulse at the rigid body’s center of mass
+        this.body.applyImpulse(impulse, true);
+        this.jumpCharge = 0;
+      }
+    } else {
+      this.jumpCharge = 0;
     }
 
     // Rotation via trick keys
@@ -92,6 +127,7 @@ export class Skater {
     if (this.controller.trickLeft) yawDelta = turnSpeed * delta;
     if (this.controller.trickRight) yawDelta = -turnSpeed * delta;
     if (yawDelta !== 0) this.applyYaw(yawDelta);
+    this.body.setAngvel(new RAPIER.Vector3(0, 0, 0), true);
   }
 
   private applyOnBoardMovement(delta: number) {
@@ -107,14 +143,10 @@ export class Skater {
       this.pushStack++;
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
       forward.multiplyScalar(pushStrength);
-      
+
       // Add to current velocity rather than replace
       const vel = this.body.linvel();
-      const newVel = new RAPIER.Vector3(
-        vel.x + forward.x,
-        vel.y,
-        vel.z + forward.z
-      );
+      const newVel = new RAPIER.Vector3(vel.x + forward.x, vel.y, vel.z + forward.z);
       this.body.setLinvel(newVel, true);
 
       this.controller.pushPressed = false;
@@ -135,7 +167,7 @@ export class Skater {
 
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
       const newVel = new RAPIER.Vector3(forward.x * speed, vel.y, forward.z * speed);
-    
+
       // Set new linear velocity
       this.body.setLinvel(newVel, true);
     }
