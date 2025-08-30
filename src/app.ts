@@ -30,7 +30,7 @@ export async function initApp() {
   scene.add(plane);
 
   // --- Grid Helper ---
-  const grid = new THREE.GridHelper(100, 20, 0x444444, 0x888888); 
+  const grid = new THREE.GridHelper(100, 20, 0x444444, 0x888888);
   // size = 100, divisions = 20, dark line color, light line color
   //grid.rotation.x = -Math.PI / 2; // align with plane
   scene.add(grid);
@@ -40,7 +40,6 @@ export async function initApp() {
   const groundColliders = new Set<number>();
   const groundCollider = world.createCollider(RAPIER.ColliderDesc.cuboid(50, 0.1, 50), groundBody);
   groundColliders.add(groundCollider.handle);
-
 
   // Lights
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -63,17 +62,13 @@ export async function initApp() {
 
     world.step(eventQueue);
     eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-      const c1 = world.getCollider(handle1);
-      const c2 = world.getCollider(handle2);
-  
-      const isGroundContact =
-      groundColliders.has(handle1) || groundColliders.has(handle2);
+      const isGroundContact = groundColliders.has(handle1) || groundColliders.has(handle2);
 
       if (isGroundContact) {
-          if (started) skater.groundContacts++;
-          else skater.groundContacts--;
+        if (started) skater.groundContacts++;
+        else skater.groundContacts--;
       }
-  
+
       skater.isGrounded = skater.groundContacts > 0;
     });
 

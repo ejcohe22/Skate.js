@@ -14,12 +14,12 @@ export class Skater {
   pushStack = 0; // tracks consecutive pushes (max 3)
   maxPushStack = 3;
 
-  private jumpCharge = 0;           // seconds or arbitrary units
-  private maxJumpCharge = 3.0;      // max charge
+  private jumpCharge = 0; // seconds or arbitrary units
+  private maxJumpCharge = 3.0; // max charge
 
   groundContacts = 0; // number of current contacts with ground
   isGrounded = false;
-  
+
   constructor(controller: KeyboardController, world: RAPIER.World) {
     this.controller = controller;
 
@@ -46,8 +46,8 @@ export class Skater {
     this.body = world.createRigidBody(bodyDesc);
 
     const collider = RAPIER.ColliderDesc.cuboid(0.5, 1, 0.25)
-            .setTranslation(0, 1, 0)
-            .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
+      .setTranslation(0, 1, 0)
+      .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
     world.createCollider(collider, this.body);
   }
 
@@ -71,7 +71,7 @@ export class Skater {
   private applyOffBoardMovement(delta: number) {
     if (this.onBoard) return;
 
-    const moveSpeed = 3 ;
+    const moveSpeed = 3;
 
     // WASD movement relative to facing
     const input = new THREE.Vector3(
@@ -88,25 +88,21 @@ export class Skater {
       input.multiplyScalar(moveSpeed);
     } else {
       // natural friction
-      input.set(0, 0, 0); 
+      input.set(0, 0, 0);
     }
 
     const vel = this.body.linvel();
     const velDiff = new RAPIER.Vector3(
-        input.x - vel.x,
-        0,          // preserve Y for jumps
-        input.z - vel.z
+      input.x - vel.x,
+      0, // preserve Y for jumps
+      input.z - vel.z,
     );
 
     const mass = this.body.mass();
-    const impulse = new RAPIER.Vector3(
-      velDiff.x * mass,
-      velDiff.y * mass,
-      velDiff.z * mass
-    );
+    const impulse = new RAPIER.Vector3(velDiff.x * mass, velDiff.y * mass, velDiff.z * mass);
     this.body.applyImpulse(impulse, true);
 
-      // --- Jump / charge logic ---
+    // --- Jump / charge logic ---
     if (this.isGrounded) {
       if (this.controller.push) {
         // charge jump
@@ -116,7 +112,7 @@ export class Skater {
       } else if (this.jumpCharge > 0) {
         // release jump
         const impulse = new RAPIER.Vector3(0, this.jumpCharge * 10, 0);
-    
+
         // Apply impulse at the rigid body’s center of mass
         this.body.applyImpulse(impulse, true);
         this.jumpCharge = 0;
@@ -147,14 +143,10 @@ export class Skater {
       this.pushStack++;
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
       forward.multiplyScalar(pushStrength);
-      
+
       // Add to current velocity rather than replace
       const vel = this.body.linvel();
-      const newVel = new RAPIER.Vector3(
-        vel.x + forward.x,
-        vel.y,
-        vel.z + forward.z
-      );
+      const newVel = new RAPIER.Vector3(vel.x + forward.x, vel.y, vel.z + forward.z);
       this.body.setLinvel(newVel, true);
 
       this.controller.pushPressed = false;
@@ -175,7 +167,7 @@ export class Skater {
 
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
       const newVel = new RAPIER.Vector3(forward.x * speed, vel.y, forward.z * speed);
-    
+
       // Set new linear velocity
       this.body.setLinvel(newVel, true);
     }

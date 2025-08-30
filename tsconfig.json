@@ -41,5 +41,5 @@
     "moduleResolution": "bundler",
     "noEmit": false
   },
-  "include": ["src", "tests", "vite.config.ts"],
+  "include": ["src", "tests", "vite.config.ts"]
 }
