@@ -4,10 +4,8 @@ import tsparser from "@typescript-eslint/parser";
 import prettier from "eslint-config-prettier";
 
 export default [
+  // Base JS recommended rules
   js.configs.recommended,
-  {
-    ignores: ["dist/**", "node_modules/**"],
-  },
 
   // Browser TS files
   {
@@ -20,6 +18,9 @@ export default [
       },
       globals: {
         console: "readonly",
+        window: "readonly",
+        document: "readonly",
+        requestAnimationFrame: "readonly",
       },
     },
     plugins: {
@@ -41,13 +42,18 @@ export default [
         sourceType: "module",
       },
       globals: {
-        process: "readonly",
         console: "readonly",
+        process: "readonly",
       },
     },
     plugins: {
       "@typescript-eslint": tseslint,
     },
+  },
+
+  // Ignore build folders
+  {
+    ignores: ["dist/**", "node_modules/**"],
   },
 
   prettier,

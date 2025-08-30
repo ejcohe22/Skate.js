@@ -1,6 +1,5 @@
 # Skate.js
 
-
 1. Prerequisites
 
 Node.js 22.x (tested on 22.5.x)
@@ -8,6 +7,7 @@ Node.js 22.x (tested on 22.5.x)
 npm (comes with Node)
 
 Check your versions:
+
 ```
 node -v
 npm -v
@@ -16,6 +16,7 @@ npm -v
 If Node is missing, download it from https://nodejs.org
 
 2. Install dependencies
+
 ```
 npm install
 ```
@@ -25,6 +26,7 @@ This installs all dev tools (Vite, TypeScript, ESLint, Prettier, Vitest) and run
 3. Development workflow
 
 Run the Vite development server:
+
 ```
 npm run dev
 ```
@@ -36,21 +38,25 @@ Supports hot module replacement (HMR) — changes reload instantly
 4. Formatting and linting
 
 Format all files with Prettier:
+
 ```
 npm run format
 ```
 
 Check code style with ESLint:
+
 ```
 npm run lint
 ```
 
 Auto-fix lint issues:
+
 ```
 npm run lint:fix
 ```
 
 6. Unit testing
+
 ```
 npm run test
 ```
@@ -66,6 +72,7 @@ npm run build
 Output goes into the dist/ folder
 
 Preview the production build locally:
+
 ```
 npm run preview
 ```
