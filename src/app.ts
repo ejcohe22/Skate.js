@@ -36,7 +36,11 @@ export async function initApp() {
   scene.add(grid);
 
   const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
-  world.createCollider(RAPIER.ColliderDesc.cuboid(50, 0.1, 50), groundBody);
+
+  const groundColliders = new Set<number>();
+  const groundCollider = world.createCollider(RAPIER.ColliderDesc.cuboid(50, 0.1, 50), groundBody);
+  groundColliders.add(groundCollider.handle);
+
 
   // Lights
   scene.add(new THREE.AmbientLight(0xffffff, 0.5));
@@ -58,6 +62,20 @@ export async function initApp() {
     const delta = clock.getDelta();
 
     world.step(eventQueue);
+    eventQueue.drainCollisionEvents((handle1, handle2, started) => {
+      const c1 = world.getCollider(handle1);
+      const c2 = world.getCollider(handle2);
+  
+      const isGroundContact =
+      groundColliders.has(handle1) || groundColliders.has(handle2);
+
+      if (isGroundContact) {
+          if (started) skater.groundContacts++;
+          else skater.groundContacts--;
+      }
+  
+      skater.isGrounded = skater.groundContacts > 0;
+    });
 
     // Update skater (reads input)
     skater.update(delta);
