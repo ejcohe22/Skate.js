@@ -1,1 +1,3 @@
-console.log("hello skate");
+import { initApp } from "./app";
+
+initApp();
