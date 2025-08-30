@@ -29,6 +29,12 @@ export async function initApp() {
   plane.rotation.x = -Math.PI / 2;
   scene.add(plane);
 
+  // --- Grid Helper ---
+  const grid = new THREE.GridHelper(100, 20, 0x444444, 0x888888); 
+  // size = 100, divisions = 20, dark line color, light line color
+  //grid.rotation.x = -Math.PI / 2; // align with plane
+  scene.add(grid);
+
   const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
   world.createCollider(RAPIER.ColliderDesc.cuboid(50, 0.1, 50), groundBody);
 
@@ -58,6 +64,8 @@ export async function initApp() {
 
     // Update camera (follows player)
     cameraController.update();
+
+    controller.update();
 
     // Render
     renderer.render(scene, camera);

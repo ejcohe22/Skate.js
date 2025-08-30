@@ -36,7 +36,7 @@ export class Skater {
     // Physics body
     const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
       .setTranslation(0, 1, 0)
-      .lockRotations(false, true, false); // Only Y rotation
+      .enabledRotations(false, true, false); // Only Y rotation
     this.body = world.createRigidBody(bodyDesc);
 
     const collider = RAPIER.ColliderDesc.cuboid(0.5, 1, 0.25).setTranslation(0, 1, 0);
@@ -98,29 +98,49 @@ export class Skater {
     if (!this.onBoard) return;
 
     const turnSpeed = 2.0;
-    const pushStrength = 5.5; // strength of a single kick
+    const pushStrength = 10.5;
     const maxPushStack = 3;
     const groundFriction = 1.0001; // how much speed drops per frame
 
-    // --- Turning (changes facing only) ---
-    if (this.controller.left) this.applyYaw(turnSpeed * delta);
-    if (this.controller.right) this.applyYaw(-turnSpeed * delta);
-
-    // --- Push Handling ---
-    if (this.controller.push) {
-      if (this.pushStack < maxPushStack) this.pushStack++;
-
-      // Forward direction in world space
+    // --- Handle forward pushes ---
+    if (this.controller.pushPressed && this.pushStack < maxPushStack) {
+      this.pushStack++;
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
+      forward.multiplyScalar(pushStrength);
+      
+      // Add to current velocity rather than replace
+      const vel = this.body.linvel();
+      const newVel = new RAPIER.Vector3(
+        vel.x + forward.x,
+        vel.y,
+        vel.z + forward.z
+      );
+      this.body.setLinvel(newVel, true);
 
-      // Apply a single physics impulse = a "kick"
-      const impulse = new RAPIER.Vector3(forward.x * pushStrength, 0, forward.z * pushStrength);
-      this.body.applyImpulse(impulse, true);
-
-      this.controller.push = false; // consume tap
+      this.controller.pushPressed = false;
     }
 
-    // --- Friction (applies only when grounded) ---
+    // --- Turning that bends velocity ---
+    const turnInput = (this.controller.left ? 1 : 0) - (this.controller.right ? 1 : 0);
+    if (turnInput !== 0) {
+      let vel = this.body.linvel();
+      let speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+
+      // Turn angle scales with speed
+      const angle = turnInput * turnSpeed * delta * (1 + 1 / (speed + 0.1));
+      this.applyYaw(angle);
+
+      vel = this.body.linvel();
+      speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+
+      const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
+      const newVel = new RAPIER.Vector3(forward.x * speed, vel.y, forward.z * speed);
+    
+      // Set new linear velocity
+      this.body.setLinvel(newVel, true);
+    }
+
+    // --- Friction (applie:wqs only when grounded) ---
     const vel = this.body.linvel();
     const newVel = new RAPIER.Vector3(vel.x / groundFriction, vel.y, vel.z / groundFriction);
     this.body.setLinvel(newVel, true);
