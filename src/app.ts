@@ -39,7 +39,7 @@ export async function initApp() {
   scene.add(light);
 
   // Player
-  const controller = new KeyboardController(false); // USE WASD
+  const controller = new KeyboardController(true); // USE WASD
   const skater = new Skater(controller, world);
   scene.add(skater.mesh);
 
