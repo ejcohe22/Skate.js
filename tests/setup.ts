@@ -57,3 +57,41 @@ vi.mock("three/examples/jsm/loaders/OBJLoader", () => {
     },
   };
 });
+
+vi.mock("three/examples/jsm/loaders/GLTFLoader", () => {
+  return {
+    GLTFLoader: class {
+      load(
+        path: string,
+        onLoad: (gltf: any) => void,
+        onProgress?: (event: any) => void,
+        onError?: (event: any) => void,
+      ) {
+        const mockScene = new THREE.Object3D();
+        // Optional: add a mock mesh child if your code expects it
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshStandardMaterial(),
+        );
+        mesh.name = "MockMesh";
+        mockScene.add(mesh);
+
+        setTimeout(() => {
+          onLoad({ scene: mockScene });
+        }, 0);
+      }
+
+      async loadAsync(path: string) {
+        const mockScene = new THREE.Object3D();
+        const mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshStandardMaterial(),
+        );
+        mesh.name = "MockMesh";
+        mockScene.add(mesh);
+
+        return { scene: mockScene };
+      }
+    },
+  };
+});

@@ -15,7 +15,7 @@ export class Skater {
   maxPushStack = 3;
 
   private jumpCharge = 0; // seconds or arbitrary units
-  private maxJumpCharge = 3.0; // max charge
+  private maxJumpCharge = 1.5; // max charge
 
   groundContacts = 0; // number of current contacts with ground
   isGrounded = false;
@@ -44,6 +44,14 @@ export class Skater {
       .setTranslation(0, 1, 0)
       .enabledRotations(false, true, false); // Only Y rotation
     this.body = world.createRigidBody(bodyDesc);
+    // Keep originals
+    const originalApplyImpulse = this.body.applyImpulse.bind(this.body);
+
+    // Wrap applyImpulse
+    this.body.applyImpulse = (impulse: RAPIER.Vector, wakeUp: boolean) => {
+      console.log("Impulse applied to skater:", impulse);
+      return originalApplyImpulse(impulse, wakeUp);
+    };
 
     const collider = RAPIER.ColliderDesc.cuboid(0.5, 1, 0.25)
       .setTranslation(0, 1, 0)
@@ -106,7 +114,7 @@ export class Skater {
     if (this.isGrounded) {
       if (this.controller.push) {
         // charge jump
-        this.jumpCharge += delta;
+        this.jumpCharge += delta*10;
         if (this.jumpCharge > this.maxJumpCharge) this.jumpCharge = this.maxJumpCharge;
         // TODO: show visual indicator for jumpCharge
       } else if (this.jumpCharge > 0) {
@@ -123,7 +131,7 @@ export class Skater {
 
     // Rotation via trick keys
     let yawDelta = 0;
-    const turnSpeed = 1;
+    const turnSpeed = 3;
     if (this.controller.trickLeft) yawDelta = turnSpeed * delta;
     if (this.controller.trickRight) yawDelta = -turnSpeed * delta;
     if (yawDelta !== 0) this.applyYaw(yawDelta);
@@ -132,52 +140,47 @@ export class Skater {
 
   private applyOnBoardMovement(delta: number) {
     if (!this.onBoard) return;
-
-    const turnSpeed = 2.0;
-    const pushStrength = 10.5;
+  
+    const turnSpeed = 2.0;      // how fast skater can rotate
+    const pushImpulse = 5.0;    // base impulse strength
     const maxPushStack = 3;
-    const groundFriction = 1.0001; // how much speed drops per frame
-
-    // --- Handle forward pushes ---
+    const friction = 0.99;      // per-frame velocity damping
+  
+    // --- Forward push ---
     if (this.controller.pushPressed && this.pushStack < maxPushStack) {
       this.pushStack++;
+  
       const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
-      forward.multiplyScalar(pushStrength);
-
-      // Add to current velocity rather than replace
       const vel = this.body.linvel();
-      const newVel = new RAPIER.Vector3(vel.x + forward.x, vel.y, vel.z + forward.z);
-      this.body.setLinvel(newVel, true);
-
+      const speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+  
+      // Scale impulse inversely to speed so high speed doesn't over-accelerate
+      const impulseScale = 1 / (1 + speed);
+      const impulse = new RAPIER.Vector3(forward.x * pushImpulse * impulseScale, 0, forward.z * pushImpulse * impulseScale);
+  
+      this.body.applyImpulse(impulse, true);
+  
       this.controller.pushPressed = false;
     }
-
-    // --- Turning that bends velocity ---
+  
+    // --- Turning ---
     const turnInput = (this.controller.left ? 1 : 0) - (this.controller.right ? 1 : 0);
     if (turnInput !== 0) {
-      let vel = this.body.linvel();
-      let speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
+      const vel = new THREE.Vector3(this.body.linvel().x, 0, this.body.linvel().z);
+      const speed = vel.length();
 
-      // Turn angle scales with speed
-      const angle = turnInput * turnSpeed * delta * (1 + 1 / (speed + 0.1));
-      this.applyYaw(angle);
-
-      vel = this.body.linvel();
-      speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
-
-      const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
-      const newVel = new RAPIER.Vector3(forward.x * speed, vel.y, forward.z * speed);
-
-      // Set new linear velocity
-      this.body.setLinvel(newVel, true);
+        // Gradually rotate velocity towards facing
+        const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.getBodyQuaternion());
+        const newVel = vel.lerp(forward.multiplyScalar(speed), turnSpeed * delta);
+        this.body.setLinvel(new RAPIER.Vector3(newVel.x, this.body.linvel().y, newVel.z), true);
     }
-
-    // --- Friction (applie:wqs only when grounded) ---
+  
+    // --- Friction / drag ---
     const vel = this.body.linvel();
-    const newVel = new RAPIER.Vector3(vel.x / groundFriction, vel.y, vel.z / groundFriction);
-    this.body.setLinvel(newVel, true);
-
-    // --- Reset push stack gradually (so repeated taps matter) ---
+    const dampened = new RAPIER.Vector3(vel.x * friction, vel.y, vel.z * friction);
+    this.body.setLinvel(dampened, true);
+  
+    // --- Gradually reset push stack ---
     this.pushStack -= delta;
     if (this.pushStack < 0) this.pushStack = 0;
   }
