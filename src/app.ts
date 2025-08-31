@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Skater } from "./Skater";
+import { Skatepark } from "./Skatepark";
 import { CameraController } from "./CameraController";
 import { KeyboardController } from "./controls/KeyboardController";
 
@@ -23,29 +24,37 @@ export async function initApp() {
   document.body.appendChild(renderer.domElement);
 
   // Ground
-  const planeGeom = new THREE.PlaneGeometry(100, 100);
-  const planeMat = new THREE.MeshStandardMaterial({ color: 0x808080 });
-  const plane = new THREE.Mesh(planeGeom, planeMat);
-  plane.rotation.x = -Math.PI / 2;
-  scene.add(plane);
+  const skatepark = new Skatepark(world, scene);
+  await skatepark.load();
 
   // --- Grid Helper ---
-  const grid = new THREE.GridHelper(100, 20, 0x444444, 0x888888);
+  //const grid = new THREE.GridHelper(100, 20, 0x444444, 0x888888);
   // size = 100, divisions = 20, dark line color, light line color
   //grid.rotation.x = -Math.PI / 2; // align with plane
-  scene.add(grid);
-
-  const groundBody = world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
-
-  const groundColliders = new Set<number>();
-  const groundCollider = world.createCollider(RAPIER.ColliderDesc.cuboid(50, 0.1, 50), groundBody);
-  groundColliders.add(groundCollider.handle);
+  //scene.add(grid);
 
   // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(5, 10, 7.5);
-  scene.add(light);
+  scene.add(new THREE.AmbientLight(0xffffff, .9));
+  // Overhead sun
+  const sun = new THREE.DirectionalLight(0xffddcc, 10);
+  sun.position.set(0, 100, 0);
+  sun.target.position.set(0, 0, 0);
+  scene.add(sun);
+  scene.add(sun.target);
+
+  // Optional: enable shadows
+  sun.castShadow = true;
+  sun.shadow.mapSize.width = 2048;
+  sun.shadow.mapSize.height = 2048;
+  sun.shadow.camera.near = 0.5;
+  sun.shadow.camera.far = 500;
+  sun.shadow.camera.left = -200;
+  sun.shadow.camera.right = 200;
+  sun.shadow.camera.top = 200;
+  sun.shadow.camera.bottom = -200;
+  //const light = new THREE.DirectionalLight(0xffffff, 1);
+  //light.position.set(5, 10, 7.5);
+  //scene.add(light);
 
   // Player
   const controller = new KeyboardController(true); // USE WASD
@@ -62,7 +71,8 @@ export async function initApp() {
 
     world.step(eventQueue);
     eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-      const isGroundContact = groundColliders.has(handle1) || groundColliders.has(handle2);
+      const isGroundContact =
+        skatepark.groundColliders.has(handle1) || skatepark.groundColliders.has(handle2);
 
       if (isGroundContact) {
         if (started) skater.groundContacts++;
