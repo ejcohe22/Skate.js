@@ -6,6 +6,14 @@ vi.mock("three", async (importOriginal) => {
 
   return {
     ...actual,
+    TextureLoader: class {
+      load(url: string, onLoad?: (texture: THREE.Texture) => void) {
+        const dummyTexture = new THREE.Texture();
+        if (onLoad) setTimeout(() => onLoad(dummyTexture), 0);
+        return dummyTexture;
+      }
+      loadAsync = async (url: string) => new THREE.Texture();
+    },
     WebGLRenderer: class {
       domElement = document.createElement("canvas");
       setSize() {}
@@ -29,7 +37,9 @@ vi.mock("three/examples/jsm/loaders/MTLLoader", () => {
 vi.mock("three/examples/jsm/loaders/OBJLoader", () => {
   return {
     OBJLoader: class {
-      setMaterials() { return this; }
+      setMaterials() {
+        return this;
+      }
       load(path: string, onLoad: (obj: any) => void) {
         setTimeout(() => {
           const group = new THREE.Group();
@@ -43,7 +53,7 @@ vi.mock("three/examples/jsm/loaders/OBJLoader", () => {
         const mesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial());
         group.add(mesh);
         return group;
-      }
+      };
     },
   };
 });
