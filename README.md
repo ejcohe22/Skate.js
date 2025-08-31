@@ -84,3 +84,7 @@ Runs a local server serving the dist/ folder at http://localhost:4173/
 Feature branches → PR into dev → CI runs lint + tests
 
 Merge dev → main → GitHub Actions deploys built site to GitHub Pages
+
+Assets/Credits
+
+https://www.fab.com/listings/2a5d91a1-7788-4099-9b01-30cd8e2f1471
