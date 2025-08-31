@@ -47,27 +47,30 @@ export class Skatepark {
     });
 
     // Position / scale adjustments
-    this.object3D.scale.set(8,8,8); // adjust if needed
+    this.object3D.scale.set(8, 8, 8); // adjust if needed
     this.object3D.position.set(0, -10, 0);
-    this.object3D.rotation.x = -Math.PI / 2; 
+    this.object3D.rotation.x = -Math.PI / 2;
     this.object3D.updateMatrixWorld(true);
 
     this.scene.add(this.object3D);
 
     this.object3D.traverse((child: any) => {
-        if (child.isMesh) {
-          const mat = child.material;
-          mat.map = mat.map || new THREE.TextureLoader().load('/Skate.js/assets/southbank-undercroft-skatepark/source/Exports/SouthbankSkatePark02_u1_v1.jpg');
-          mat.color.set(0xffffff);   // reset color to white to show texture correctly
-          mat.needsUpdate = true;
-        }
-      });
+      if (child.isMesh) {
+        const mat = child.material;
+        mat.map =
+          mat.map ||
+          new THREE.TextureLoader().load(
+            "/Skate.js/assets/southbank-undercroft-skatepark/source/Exports/SouthbankSkatePark02_u1_v1.jpg",
+          );
+        mat.color.set(0xffffff); // reset color to white to show texture correctly
+        mat.needsUpdate = true;
+      }
+    });
 
     // Create colliders for all meshes
     this.object3D.traverse((child: any) => {
       if (child.isMesh) {
         child.geometry.computeVertexNormals();
-  
 
         PhysicsUtils.addTrimeshCollider(child, this.world, this.groundColliders);
       }

@@ -34,7 +34,7 @@ export async function initApp() {
   //scene.add(grid);
 
   // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, .9));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
   // Overhead sun
   const sun = new THREE.DirectionalLight(0xffddcc, 10);
   sun.position.set(0, 100, 0);
