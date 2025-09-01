@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { KeyboardController } from "./controls/KeyboardController";
+import { KeyboardController } from "./lib/Controls/KeyboardController";
 import RAPIER from "@dimforge/rapier3d-compat";
 
 export class Skater {
@@ -45,13 +45,13 @@ export class Skater {
       .enabledRotations(false, true, false); // Only Y rotation
     this.body = world.createRigidBody(bodyDesc);
     // Keep originals
-    const originalApplyImpulse = this.body.applyImpulse.bind(this.body);
+    //const originalApplyImpulse = this.body.applyImpulse.bind(this.body);
 
     // Wrap applyImpulse
-    this.body.applyImpulse = (impulse: RAPIER.Vector, wakeUp: boolean) => {
-      console.log("Impulse applied to skater:", impulse);
-      return originalApplyImpulse(impulse, wakeUp);
-    };
+    //this.body.applyImpulse = (impulse: RAPIER.Vector, wakeUp: boolean) => {
+    //  console.log("Impulse applied to skater:", impulse);
+    //  return originalApplyImpulse(impulse, wakeUp);
+    //};
 
     const collider = RAPIER.ColliderDesc.cuboid(0.5, 1, 0.25)
       .setTranslation(0, 1, 0)
@@ -79,7 +79,7 @@ export class Skater {
   private applyOffBoardMovement(delta: number) {
     if (this.onBoard) return;
 
-    const moveSpeed = 3;
+    const moveSpeed = 5;
 
     // WASD movement relative to facing
     const input = new THREE.Vector3(
