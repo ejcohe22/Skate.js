@@ -1,96 +1,62 @@
 import * as THREE from "three";
 import RAPIER from "@dimforge/rapier3d-compat";
 import { Skater } from "./Skater";
-import { Skatepark } from "./Skatepark";
+import { Environment } from "./Environment";
 import { CameraController } from "./CameraController";
-import { KeyboardController } from "./controls/KeyboardController";
+import { KeyboardController } from "./lib/Controls/KeyboardController";
 
 export async function initApp() {
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  // Build World
   await RAPIER.init();
   const gravity = { x: 0, y: -9.81, z: 0 };
   const world = new RAPIER.World(gravity);
   const eventQueue = new RAPIER.EventQueue(true);
 
-  // Scene
+  // Fill it with stuff
   const scene = new THREE.Scene();
+  const environment = new Environment(scene, world, 300, 300);
+  environment.setupDefaultLighting();
+  environment.setSkyColor(0x1177ee);
 
-  // Camera
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.set(0, 3, 5);
-
-  // Renderer
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  document.body.appendChild(renderer.domElement);
-
-  // Ground
-  const skatepark = new Skatepark(world, scene);
-  await skatepark.load();
-
-  // --- Grid Helper ---
-  //const grid = new THREE.GridHelper(100, 20, 0x444444, 0x888888);
-  // size = 100, divisions = 20, dark line color, light line color
-  //grid.rotation.x = -Math.PI / 2; // align with plane
-  //scene.add(grid);
-
-  // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 0.9));
-  // Overhead sun
-  const sun = new THREE.DirectionalLight(0xffddcc, 10);
-  sun.position.set(0, 100, 0);
-  sun.target.position.set(0, 0, 0);
-  scene.add(sun);
-  scene.add(sun.target);
-
-  // Optional: enable shadows
-  sun.castShadow = true;
-  sun.shadow.mapSize.width = 2048;
-  sun.shadow.mapSize.height = 2048;
-  sun.shadow.camera.near = 0.5;
-  sun.shadow.camera.far = 500;
-  sun.shadow.camera.left = -200;
-  sun.shadow.camera.right = 200;
-  sun.shadow.camera.top = 200;
-  sun.shadow.camera.bottom = -200;
-  //const light = new THREE.DirectionalLight(0xffffff, 1);
-  //light.position.set(5, 10, 7.5);
-  //scene.add(light);
+  // USE WASD
+  const is_regular = true;
+  const controller = new KeyboardController(is_regular);
 
   // Player
-  const controller = new KeyboardController(true); // USE WASD
   const skater = new Skater(controller, world);
   scene.add(skater.mesh);
 
+  // Camera
+  const camera = new THREE.PerspectiveCamera(90, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 3, 5);
   const cameraController = new CameraController(camera, skater);
 
-  // Animate
+  // GAME LOOP
   const clock = new THREE.Clock();
   function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
-
+  
+    // oh no, what are you doing step-physics
     world.step(eventQueue);
-    eventQueue.drainCollisionEvents((handle1, handle2, started) => {
-      const isGroundContact =
-        skatepark.groundColliders.has(handle1) || skatepark.groundColliders.has(handle2);
-
-      if (isGroundContact) {
+  
+    // Ground collision detection
+    eventQueue.drainCollisionEvents((h1, h2, started) => {
+      if (environment.groundColliders.has(h1) || environment.groundColliders.has(h2)) {
         if (started) skater.groundContacts++;
         else skater.groundContacts--;
       }
-
-      skater.isGrounded = skater.groundContacts > 0;
     });
+    skater.isGrounded = skater.groundContacts > 0;
+    console.log(skater.isGrounded)
 
-    // Update skater (reads input)
     skater.update(delta);
-
-    // Update camera (follows player)
     cameraController.update();
-
     controller.update();
-
-    // Render
     renderer.render(scene, camera);
   }
 

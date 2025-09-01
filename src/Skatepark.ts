@@ -1,58 +1,38 @@
 import * as THREE from "three";
-import * as RAPIER from "@dimforge/rapier3d-compat";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { PhysicsUtils } from "./lib/PhysicsUtils";
+import RAPIER from "@dimforge/rapier3d-compat";
+
+import { ParkBuilder } from "./lib/Park/ParkBuilder";
+import * as Prefabs from "./lib/Park/Prefabs";
 
 export class Skatepark {
-  public object3D: THREE.Object3D | null = null;
-  public groundColliders: Set<number> = new Set();
+  private debugOpts = { showColliders: true, logColliders: true, showWireframes: true };
+  public builder : ParkBuilder;
 
-  constructor(
-    private world: RAPIER.World,
-    private scene: THREE.Scene,
-    // vite serves any thing in "public" as root directory :)
-    private assetPath: string = "/Skate.js/assets/meshes/",
-  ) {
-    this.world = world;
-    this.scene = scene;
-    this.assetPath = assetPath;
+  constructor(public scene: THREE.Scene, private world: RAPIER.World){
+    this.builder = new ParkBuilder(scene, world, this.debugOpts);
+    this.buildPieces();
   }
 
-  /**
-   * Load the skatepark model and hook up colliders
-   */
-  async load(): Promise<void> {
-    const loader = new GLTFLoader();
-    const gltf = await new Promise<THREE.Group>((resolve, reject) => {
-      loader.load(
-        `${this.assetPath}Skatepark.glb`,
-        (g: {
-          scene:
-            | THREE.Group<THREE.Object3DEventMap>
-            | PromiseLike<THREE.Group<THREE.Object3DEventMap>>;
-        }) => resolve(g.scene),
-        undefined,
-        reject,
-      );
-    });
+  buildPieces(){
+    // main two platforms 
+    const pA = Prefabs.createPlatformPiece(15, 10, 2, 0xffffcc);
+    pA.mesh.position.set(0, 1, 0); // place A
+    this.builder.addPiece(pA, "box", true);
 
-    this.object3D = gltf;
+    const pB = Prefabs.createPlatformPiece(15, 20, 2, 0xccffcc );
+    pB.mesh.position.set(15, 1, 5); // place B
+    this.builder.addPiece(pB, "box", true);
 
-    // Position / scale adjustments
-    this.object3D.scale.set(5, 5, 5); // adjust if needed
-    this.object3D.position.set(0, -20, 0);
-    //this.object3D.rotation.x = -Math.PI / 2;
-    this.object3D.updateMatrixWorld(true);
+    // triangular ramps that lead up to platforms
+    const rampA = Prefabs.createTriangularRamp(10, 3, 2, 0xffff00);
+    this.builder.addPiece(rampA, "convex", true);
+    this.builder.snapPieceTo(rampA, pA, 0, 0);
+    //this.builder.showSnapPoints(rampA);
 
-    this.scene.add(this.object3D);
-
-    // Create colliders for all meshes
-    this.object3D.traverse((child: any) => {
-      if (child.isMesh) {
-        child.geometry.computeVertexNormals();
-
-        PhysicsUtils.addTrimeshCollider(child, this.world, this.groundColliders, this.scene);
-      }
-    });
+    // stairs with hubba, snap to platform B edge
+    const stairs = Prefabs.createStairsWithHubba(4, 6, .9, .5, 0x00ff00);
+    this.builder.addPiece(stairs, "box", true);
+    this.builder.snapPieceTo(stairs, pB, 2, 2);
   }
 }
+
